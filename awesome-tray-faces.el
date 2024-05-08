@@ -99,10 +99,10 @@
 
 ;; Contextual Faces
 
-(defface awesome-tray-module-git-face
+(defface awesome-tray-module-vc-face
   '((((background light)) :inherit awesome-tray-red-face)
     (t :inherit awesome-tray-red-face))
-  "Git face."
+  "vc face."
   :group 'awesome-tray)
 
 (defface awesome-tray-module-awesome-tab-face

@@ -67,7 +67,7 @@
 ;; `awesome-tray-mode-line-active-color'
 ;; `awesome-tray-mode-line-inactive-color'
 ;; `awesome-tray-active-modules'
-;; `awesome-tray-git-update-duration'
+;; `awesome-tray-vc-update-duration'
 ;; `awesome-tray-refresh-idle-delay'
 ;; `awesome-tray-buffer-name-buffer-changed'
 ;; `awesome-tray-buffer-name-buffer-changed-style'
@@ -157,7 +157,7 @@
 ;;      * Fix crash cause by `awesome-tray-module-awesome-tab-info'
 ;;
 ;; 2019/05/08
-;;      * Disable git modulde default, it have performance when we change buffer too fast.
+;;      * Disable vc modulde default, it have performance when we change buffer too fast.
 ;;
 ;; 2019/04/29
 ;;      * Fix position not update when execute command `beginning-of-buffer' or `end-of-buffer'.
@@ -182,7 +182,7 @@
 ;;
 ;; 2018/10/29
 ;;      * Use `unspecified' attribute fix black block of mode-line inactive status.
-;;      * Add `awesome-tray-git-update-duration' option.
+;;      * Add `awesome-tray-vc-update-duration' option.
 ;;
 ;; 2018/10/21
 ;;      * Use `advice-add' re-implmenet `awesome-tray-message-advice'
@@ -190,10 +190,10 @@
 ;;      * Don't show parent-dir if current mode is `dired-mode'.
 ;;
 ;; 2018/10/13
-;;      * Use `awesome-tray-process-exit-code-and-output' fetch git current branch for better error handling.
+;;      * Use `awesome-tray-process-exit-code-and-output' fetch vc current branch for better error handling.
 ;;
 ;; 2018/10/11
-;;      * Reimplement `awesome-tray-module-git-info' don't depend on magit.
+;;      * Reimplement `awesome-tray-module-vc-info' don't depend on magit.
 ;;      * Add last-command module, handy for debug emacs.
 ;;
 ;; 2018/10/09
@@ -224,7 +224,7 @@
 (require 'timer)
 (require 'minibuffer)
 (require 'overlay)
-(require 'vc-git)
+(require 'vc)
 (require 'format-spec)
 
 (require 'awesome-tray-faces)
@@ -261,8 +261,8 @@ disable it if you have any problems with your minibuffer appearence."
   :group 'awesome-tray
   :type 'symbol)
 
-(defcustom awesome-tray-git-show-status t
-  "If non-nil, display the current file status in the git module."
+(defcustom awesome-tray-vc-show-status t
+  "If non-nil, display the current file status in the vc module."
   :group 'awesome-tray
   :type 'boolean)
 
@@ -329,7 +329,7 @@ If nil, don't update the awesome-tray automatically."
   :group 'awesome-tray)
 
 (defcustom awesome-tray-active-modules
-  '("location" "belong" "file-path" "mode-name" "battery" "date")
+  '(" " "location" "belong" "file-path" "mode-name" "battery" "date")
   "Default active modules."
   :type 'list
   :group 'awesome-tray)
@@ -340,12 +340,12 @@ If nil, don't update the awesome-tray automatically."
   :type 'list
   :group 'awesome-tray)
 
-(defcustom awesome-tray-git-update-hooks
+(defcustom awesome-tray-vc-update-hooks
   '(after-save-hook
     after-revert-hook
     vc-checkin-hook
     text-scale-mode-hook)
-  "Hook points to update the git module."
+  "Hook points to update the vc module."
   :type '(list (hook :tag "HookPoint")
                (repeat :inline t (hook :tag "HookPoint"))))
 
@@ -389,13 +389,6 @@ If nil, don't update the awesome-tray automatically."
 %P playlist-length
 %f filename without the folder and file extension
 %F regular filename"
-  :group 'awesome-tray
-  :type 'string)
-
-(defcustom awesome-tray-git-format "git:%s"
-  "Format string of the git module.
-
-%s branch and file status if enabled with `awesome-tray-git-show-status'"
   :group 'awesome-tray
   :type 'string)
 
@@ -527,9 +520,9 @@ Example:
 
 (defvar awesome-tray-mpd-command-cache "")
 
-(defvar awesome-tray-git-command-cache "")
+(defvar awesome-tray-vc-command-cache "")
 
-(defvar awesome-tray-git-buffer-filename "")
+(defvar awesome-tray-vc-buffer-filename "")
 
 (defvar awesome-tray-belong-last-time 0)
 
@@ -551,10 +544,9 @@ Example:
     ("circe" . (awesome-tray-module-circe-info awesome-tray-module-circe-face))
     ("date" . (awesome-tray-module-date-info awesome-tray-module-date-face))
     ("celestial" . (awesome-tray-module-celestial-info awesome-tray-module-celestial-face))
-    ("date" . (awesome-tray-module-date-info awesome-tray-module-date-face))
     ("evil" . (awesome-tray-module-evil-info awesome-tray-module-evil-face))
     ("file-path" . (awesome-tray-module-file-path-info awesome-tray-module-file-path-face))
-    ("git" . (awesome-tray-module-git-info awesome-tray-module-git-face))
+    ("vc" . (awesome-tray-module-vc-info))
     ("last-command" . (awesome-tray-module-last-command-info awesome-tray-module-last-command-face))
     ("location" . (awesome-tray-module-location-info awesome-tray-module-location-face))
     ("location-or-page" . (awesome-tray-module-location-or-page-info awesome-tray-module-location-or-page-face))
@@ -575,8 +567,8 @@ Example:
     ("word-count" . (awesome-tray-module-word-count-info awesome-tray-module-word-count-face))
     ("anzu" . (awesome-tray-module-anzu-info awesome-tray-module-anzu-face))
     ("github" . (awesome-tray-module-github-info awesome-tray-module-github-face))
-    ("hostname" . (awesome-tray-module-hostname-info awesome-tray-module-hostname-face))
-    ))
+    ("hostname" . (awesome-tray-module-hostname-info awesome-tray-module-hostname-face))))
+    
 
 (with-eval-after-load 'mu4e-alert
   (add-hook 'mu4e-index-updated-hook #'mu4e-alert-update-mail-count-modeline)
@@ -716,20 +708,15 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
       (concat (number-to-string (truncate (volume-get))) "%")
     ""))
 
-(defun awesome-tray-module-git-info ()
-  (if (executable-find "git")
-      (progn
-        (if (not (string= (buffer-file-name) awesome-tray-git-buffer-filename))
-            (awesome-tray-git-command-update-cache))
-        awesome-tray-git-command-cache)
-    ""))
+(defun awesome-tray-module-vc-info ()
+  (if (not (string= (buffer-file-name) awesome-tray-vc-buffer-filename))
+      (awesome-tray-vc-command-update-cache)
+    awesome-tray-vc-command-cache))
 
-(defun awesome-tray-git-command-update-cache ()
+(defun awesome-tray-vc-command-update-cache ()
   (if (file-exists-p (format "%s" (buffer-file-name)))
       (let* ((filename (buffer-file-name))
-             (status (vc-git-state filename))
-             (branch (car (vc-git-branches))))
-
+             (status (vc-state filename)))
         (pcase status
           ('up-to-date (setq status ""))
           ('edited (setq status "!"))
@@ -743,15 +730,15 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
           ('ignored (setq status ""))
           ('unregistered (setq status "?"))
           (_ (setq status "")))
-        (if (not branch) (setq branch ""))
-
-        (setq awesome-tray-git-buffer-filename filename)
-
-        (setq awesome-tray-git-command-cache (if awesome-tray-git-show-status
-                                                 (format awesome-tray-git-format (string-trim (concat branch " " status)))
-                                               (format awesome-tray-git-format branch))))
-    (setq awesome-tray-git-buffer-filename nil
-          awesome-tray-git-command-cache "")))
+        (setq awesome-tray-vc-buffer-filename filename)
+        (setq awesome-tray-vc-command-cache
+              (if awesome-tray-vc-show-status
+                  (concat (string-trim-left
+                           (propertize (format-mode-line '(vc-mode vc-mode)) 'face 'awesome-tray-module-vc-face))
+                          (propertize status 'face 'awesome-tray-red-face))
+                (string-trim-left (format-mode-line '(vc-mode vc-mode))))))
+    (setq awesome-tray-vc-buffer-filename nil
+          awesome-tray-vc-command-cache "")))
 
 (defun awesome-tray-module-circe-info ()
   "Display circe tracking buffers"
@@ -764,8 +751,8 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
   (if (executable-find "rvm-prompt")
       (format "rvm:%s" (replace-regexp-in-string
                         "\n" ""
-                        (nth 1 (awesome-tray-process-exit-code-and-output "rvm-prompt")))
-              )
+                        (nth 1 (awesome-tray-process-exit-code-and-output "rvm-prompt"))))
+              
     ""))
 
 (defun awesome-tray-module-battery-info ()
@@ -785,15 +772,14 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
                  (setq battery-status (battery-format
                                        (if (eq system-type 'darwin)
                                            "[%p%%]"
-                                         "[%p%% %t]" )
+                                         "[%p%% %t]")
                                        battery-info))))
 
           ;; Update battery cache.
           (setq awesome-tray-battery-status-cache (concat battery-type battery-status)))
       awesome-tray-battery-status-cache)))
 
-(defun awesome-tray-module-mode-name-info ()
-  (car (split-string (format "%s" major-mode) "-mode")))
+(defun awesome-tray-module-mode-name-info () (format-mode-line mode-name))
 
 (defun awesome-tray-module-location-info ()
   (if (equal major-mode 'eaf-mode)
@@ -988,14 +974,14 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
         (let* ((class-nodes (append (awesome-tray-get-match-nodes '((class_definition name: (symbol) @x)))
                                     (awesome-tray-get-match-nodes '((class_definition name: (identifier) @x)))
                                     (awesome-tray-get-match-nodes '((class_declaration name: (identifier) @x)))
-                                    (awesome-tray-get-match-nodes '((class_specifier name: (type_identifier) @x)))
-                                    ))
+                                    (awesome-tray-get-match-nodes '((class_specifier name: (type_identifier) @x)))))
+                                    
                (function-nodes (append (awesome-tray-get-match-nodes '((function_definition name: (symbol) @x)))
                                        (awesome-tray-get-match-nodes '((function_definition name: (identifier) @x)))
                                        (awesome-tray-get-match-nodes '((function_declarator declarator: (identifier) @x)))
                                        (awesome-tray-get-match-nodes '((method_declaration name: (identifier) @x)))
-                                       (awesome-tray-get-match-nodes '((function_declarator declarator: (field_identifier) @x)))
-                                       ))
+                                       (awesome-tray-get-match-nodes '((function_declarator declarator: (field_identifier) @x)))))
+                                       
                which-belong-info
                which-class-info
                which-func-info)
@@ -1160,6 +1146,7 @@ If right is non nil, replace to the right"
       (awesome-tray-enable)
     (awesome-tray-disable)))
 
+(defvar orig-mode-line-format mode-line-format)
 ;;;###autoload
 (defun awesome-tray-enable ()
   "Turn on the awesome-tray."
@@ -1179,11 +1166,12 @@ If right is non nil, replace to the right"
                   (face-attribute 'mode-line-inactive :foreground)
                   (face-attribute 'mode-line-inactive :background)
                   (face-attribute 'mode-line-inactive :family)
-                  (face-attribute 'mode-line-inactive :box)
-                  )))
+                  (face-attribute 'mode-line-inactive :box))))
+                  
     (setq awesome-tray-mode-line-default-height (face-attribute 'mode-line :height))
 
     ;; Disable mode line.
+    (setq-default mode-line-format "")
     (set-face-attribute 'mode-line nil
                         :foreground awesome-tray-mode-line-active-color
                         :background awesome-tray-mode-line-active-color
@@ -1211,10 +1199,10 @@ If right is non nil, replace to the right"
   (when awesome-tray-minibuffer
     (add-hook 'minibuffer-setup-hook #'awesome-tray--minibuffer-setup))
 
-  ;; Add git hooks
-  (if (or (member "git" awesome-tray-active-modules) (member "git" awesome-tray-essential-modules))
-      (dolist (hook awesome-tray-git-update-hooks)
-        (add-hook hook 'awesome-tray-git-command-update-cache)))
+  ;; Add vc hooks
+  (if (or (member "vc" awesome-tray-active-modules) (member "vc" awesome-tray-essential-modules))
+      (dolist (hook awesome-tray-vc-update-hooks)
+        (add-hook hook 'awesome-tray-vc-command-update-cache)))
 
   ;; Add anzu advice
   (if (or (member "anzu" awesome-tray-active-modules) (member "anzu" awesome-tray-essential-modules))
@@ -1228,6 +1216,7 @@ If right is non nil, replace to the right"
   (interactive)
   (when awesome-tray-hide-mode-line
     ;; Restore mode-line colors.
+    (setq-default mode-line-format orig-mode-line-format)
     (when awesome-tray-mode-line-colors
       (set-face-attribute 'mode-line nil
                           :foreground (nth 0 awesome-tray-mode-line-colors)
@@ -1256,9 +1245,9 @@ If right is non nil, replace to the right"
   ;; Remove the setup function from the minibuffer hook
   (remove-hook 'minibuffer-setup-hook #'awesome-tray--minibuffer-setup)
 
-  ;; Remove git hooks
-  (dolist (hook awesome-tray-git-update-hooks)
-    (remove-hook hook 'awesome-tray-git-command-update-cache)))
+  ;; Remove vc hooks
+  (dolist (hook awesome-tray-vc-update-hooks)
+    (remove-hook hook 'awesome-tray-vc-command-update-cache)))
 
 (defun awesome-tray-is-rime-display-in-minibuffer ()
   (if (and (featurep 'rime) (eq rime-show-candidate 'minibuffer))
@@ -1353,15 +1342,16 @@ If right is non nil, replace to the right"
          ;; Get minibuffer content.
          (echo-message (current-message))
          ;; Remove text property from content.
-         (echo-text (set-text-properties 0 (length echo-message) nil echo-message))
-         ;; Set empty string if `echo-text' not string.
-         (minibuffer-info (if (stringp echo-text) echo-text ""))
+         (_ (set-text-properties 0 (length echo-message) nil echo-message))
+         ;; Set empty string if `echo-message' not string.
+         (minibuffer-info (if (stringp echo-message) echo-message ""))
          ;; Only fetch last line from content to calculate the width of left side minibuffer.
          (minibuffer-last-line (car (last (split-string minibuffer-info "\n"))))
          ;; Calculate blank length between message and active tray info.
          (blank-length (- (awesome-tray-get-frame-width)
                           (string-width tray-active-info)
                           (string-width minibuffer-last-line))))
+    ;; (message "--> %s.%s" blank-length (string-width minibuffer-last-line))
     (awesome-tray-set-text
      (if (> blank-length 0)
          ;; Show active tray info if have blank.
