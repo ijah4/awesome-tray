@@ -718,7 +718,7 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
       (let* ((filename (buffer-file-name))
              (status (vc-state filename)))
         (pcase status
-          ('up-to-date (setq status ""))
+          ('up-to-date (setq status ":"))
           ('edited (setq status "!"))
           ('needs-update (setq status "⇣"))
           ('needs-merge (setq status "⇡"))
@@ -727,15 +727,17 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
           ('removed (setq status "-"))
           ('conflict (setq status "="))
           ('missing (setq status "?"))
-          ('ignored (setq status ""))
+          ('ignored (setq status "."))
           ('unregistered (setq status "?"))
           (_ (setq status "")))
         (setq awesome-tray-vc-buffer-filename filename)
         (setq awesome-tray-vc-command-cache
               (if awesome-tray-vc-show-status
-                  (concat (string-trim-left
-                           (propertize (format-mode-line '(vc-mode vc-mode)) 'face 'awesome-tray-module-vc-face))
-                          (propertize status 'face 'awesome-tray-red-face))
+                  (let* ((s (string-trim-left (format-mode-line '(vc-mode vc-mode))))
+                         (p (string-match "[-:@!?]" s))
+                         (l (and p (substring s 0 p)))
+                         (r (and p (substring s (1+ p)))))
+                    (concat l (propertize status 'face 'awesome-tray-red-face) r))
                 (string-trim-left (format-mode-line '(vc-mode vc-mode))))))
     (setq awesome-tray-vc-buffer-filename nil
           awesome-tray-vc-command-cache "")))
