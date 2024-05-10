@@ -329,13 +329,13 @@ If nil, don't update the awesome-tray automatically."
   :group 'awesome-tray)
 
 (defcustom awesome-tray-active-modules
-  '(" " "location" "belong" "file-path" "mode-name" "battery" "date")
+  '("location" "belong" "file-path" "mode-name" "battery" "date")
   "Default active modules."
   :type 'list
   :group 'awesome-tray)
 
 (defcustom awesome-tray-essential-modules
-  '("location" "belong" "file-path")
+  '(" " "location" "belong" "file-path")
   "Default essential modules, show when minibuffer is too long."
   :type 'list
   :group 'awesome-tray)
@@ -737,7 +737,7 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
                          (p (string-match "[-:@!?]" s))
                          (l (and p (substring s 0 p)))
                          (r (and p (substring s (1+ p)))))
-                    (concat l (propertize status 'face 'awesome-tray-red-face) r))
+                    (concat l (propertize status 'face (unless (equal ":" status) 'awesome-tray-red-face)) r))
                 (string-trim-left (format-mode-line '(vc-mode vc-mode))))))
     (setq awesome-tray-vc-buffer-filename nil
           awesome-tray-vc-command-cache "")))
